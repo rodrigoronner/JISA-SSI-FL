@@ -1,0 +1,85 @@
+\documentclass[11pt]{letter}
+\usepackage[utf8]{inputenc}
+\usepackage{fontspec}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+\usepackage{hyperref}
+\hypersetup{colorlinks, urlcolor=blue}
+\usepackage{parskip}
+
+\address{
+  Rodrigo Tertulino \\
+  Coordenação de Informática, Campus Mossoró \\
+  Instituto Federal de Educação, Ciência e Tecnologia do Rio Grande do Norte (IFRN) \\
+  Av. Presidente Dutra, s/n, Alto de São Manoel \\
+  Mossoró, RN, 59628-330, Brazil \\
+  \href{mailto:rodrigo.tertulino@ifrn.edu.br}{rodrigo.tertulino@ifrn.edu.br}
+}
+
+\signature{Rodrigo Tertulino \\ (on behalf of all authors)}
+
+\begin{document}
+
+\begin{letter}{The Editors-in-Chief \\
+Journal of Internet Services and Applications (JISA) \\
+Brazilian Computing Society (SBC)}
+
+\opening{Dear Editors,}
+
+We are pleased to submit our original research article entitled \textbf{``A Decentralized Identity Protocol for Trustworthy Federated Learning: Comparative Analysis of Trust Models for Internet-Based Health Services''} for consideration for publication in the \textit{Journal of Internet Services and Applications (JISA)}.
+
+\section*{Fit with JISA Scope}
+
+This work directly addresses JISA's core focus areas of \textbf{security and privacy}, \textbf{networking protocols and architectures}, and \textbf{applications} of Internet-based services. We design and empirically validate a decentralized identity protocol based on W3C standards (DIDs, VCs) that secures Federated Learning systems against Sybil attacks in Internet-distributed environments. The protocol operates as an Internet middleware layer---leveraging blockchain smart contracts for decentralized authorization and IPFS for content-addressed model storage---providing deterministic security guarantees without reliance on centralized trust anchors. The clinical healthcare setting serves as the motivating application domain, representative of any Internet-based service handling sensitive, regulated data.
+
+\section*{Main Contributions}
+
+We believe this manuscript makes the following original contributions to the literature on Internet services and applications:
+
+\begin{enumerate}
+  \item \textbf{A formal four-level taxonomy of trust models} (T0--T3) for Federated Learning, characterizing each model along verification mechanism, security guarantee type, LGPD regulatory alignment, and operational cost---providing a systematic framework absent from prior work.
+
+  \item \textbf{The SSI-FL protocol:} a decentralized participant authentication protocol integrating W3C Decentralized Identifiers (DIDs), Verifiable Credentials (VCs), and blockchain smart contracts, specified in a domain-agnostic form applicable to any Internet-based collaborative machine learning scenario beyond healthcare.
+
+  \item \textbf{Empirical validation on a clinical dataset (MIMIC-IV)} demonstrating that the T3 trust model neutralizes 100\% of external Sybil attacks, preserves clinically meaningful predictive performance (AUC-ROC = 0.954, Recall = 0.890), and incurs protocol overhead below 1\% of training time.
+
+  \item \textbf{An analytical cost model} $C(N,R)$, calibrated from experimental data on the Ethereum Sepolia testnet, enabling prospective consortia to project operational costs before deployment (e.g., \textasciitilde\$15.67 for $N=10$ participants over $R=100$ rounds).
+
+  \item \textbf{A structured LGPD compliance mapping} across all four trust models, the first such analysis in the BFL literature, providing actionable guidance for Brazilian institutions operating Internet-based health data processing services.
+\end{enumerate}
+
+\section*{Novelty and Significance}
+
+To our knowledge, this is the first work to combine proactive W3C SSI-based identity verification with Federated Learning, and the first BFL study to include an analytical cost model, attack tree analysis, and LGPD compliance mapping within a single evaluation framework. The systematic literature review by Qammar et al.\ (2023) explicitly identified participant authentication as an unresolved open problem in BFL---our work responds directly to this gap.
+
+The protocol's negligible overhead ($< 1\%$ of training time) and linear cost scaling with consortium size remove the two most commonly cited barriers to blockchain-integrated FL adoption in production Internet services.
+
+\section*{Manuscript Information}
+
+\begin{itemize}
+  \item \textbf{Title:} A Decentralized Identity Protocol for Trustworthy Federated Learning: Comparative Analysis of Trust Models for Internet-Based Health Services
+  \item \textbf{Authors:} Rodrigo Tertulino, Ricardo Almeida, Laercio Alencar (all affiliated with IFRN, Brazil)
+  \item \textbf{Keywords:} Federated Learning, Trust Models, Self-Sovereign Identity, Decentralized Identifiers, Verifiable Credentials, Blockchain, LGPD, Internet Security, Privacy, Sybil Attack
+  \item \textbf{Article type:} Research article
+  \item \textbf{Number of figures:} 3 (color conceptual figures)
+  \item \textbf{Number of tables:} 6
+\end{itemize}
+
+\section*{Declarations}
+
+\begin{itemize}
+  \item This manuscript has not been previously published and is not under consideration by any other journal.
+  \item All authors have read and approved the final version of the manuscript.
+  \item The authors declare no competing interests.
+  \item The source code is publicly available at \url{https://github.com/rodrigoronner/TBFL-EHR-Framework}.
+  \item The MIMIC-IV dataset was accessed under a PhysioNet credentialed user agreement.
+  \item AI-assisted tools were used for language editing; the authors take full responsibility for the scientific content.
+\end{itemize}
+
+We are confident that this manuscript aligns closely with JISA's mission to publish recent advances in Internet-related science and technology, particularly in security, protocols, and applications. We would be honored to have it considered for publication.
+
+\closing{Respectfully submitted,}
+
+\end{letter}
+
+\end{document}

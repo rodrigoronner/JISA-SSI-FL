@@ -1,0 +1,494 @@
+\documentclass{sbc2023}
+
+\usepackage{graphicx}
+\usepackage[misc,geometry]{ifsym}
+\usepackage{fontspec}
+\usepackage{fontawesome}
+\usepackage{academicons}
+\usepackage{color}
+\usepackage{hyperref}
+\usepackage{aas_macros}
+\usepackage[bottom]{footmisc}
+\usepackage{supertabular}
+\usepackage{afterpage}
+\usepackage{url}
+\usepackage{pifont}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{xcolor}
+
+\setcitestyle{square}
+
+\definecolor{orcidlogo}{rgb}{0.37,0.48,0.13}
+\definecolor{unilogo}{rgb}{0.16, 0.26, 0.58}
+\definecolor{maillogo}{rgb}{0.58, 0.16, 0.26}
+\definecolor{darkblue}{rgb}{0.0,0.0,0.0}
+\hypersetup{colorlinks,breaklinks,
+            linkcolor=darkblue,urlcolor=darkblue,
+            anchorcolor=darkblue,citecolor=darkblue}
+
+\jid{JBCS}
+\jtitle{Journal of Internet Services and Applications, 2025, XX:1,}
+\doi{10.5753/jisa.2025.XXXXXX}
+\copyrightstatement{This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License}
+\jyear{2025}
+
+\title[Trust Models for Federated Learning in Healthcare]{A Decentralized Identity Protocol for Trustworthy Federated Learning: Comparative Analysis of Trust Models for Internet-Based Health Services}
+
+\author[Tertulino et al. 2025]{
+\affil{\textbf{Rodrigo Tertulino}~{\textcolor{orcidlogo}{\aiOrcid}}~[ORCID: to be added upon acceptance]~\textcolor{maillogo}{\faEnvelopeO}~~[~\textbf{Federal Institute of Education, Science and Technology of Rio Grande do Norte (IFRN)}~|\href{mailto:rodrigo.tertulino@ifrn.edu.br}{~\textbf{\textit{rodrigo.tertulino@ifrn.edu.br}}}~]}
+\affil{\textbf{Ricardo Almeida}~{\textcolor{orcidlogo}{\aiOrcid}}~[ORCID: to be added upon acceptance]~~[~\textbf{Federal Institute of Education, Science and Technology of Rio Grande do Norte (IFRN)}~]}
+\affil{\textbf{Laercio Alencar}~{\textcolor{orcidlogo}{\aiOrcid}}~[ORCID: to be added upon acceptance]~~[~\textbf{Federal Institute of Education, Science and Technology of Rio Grande do Norte (IFRN)}~]}
+}
+
+\begin{document}
+
+\begin{frontmatter}
+\maketitle
+
+\begin{mail}
+Coordenação de Informática, Campus Mossoró, Federal Institute of Education, Science and Technology of Rio Grande do Norte (IFRN), Av. Presidente Dutra, s/n, Alto de São Manoel, Mossoró, RN, 59628-330, Brazil.
+\end{mail}
+
+\begin{dates}
+\small{\textbf{Received:} DD Month 2025~~~$\bullet$~~~\textbf{Accepted:} DD Month 2025~~~$\bullet$~~~\textbf{Published:} DD Month 2025}
+\end{dates}
+
+\begin{abstract}
+\textbf{Abstract.~}
+\noindent The proliferation of Internet-connected health services and Electronic Health Records (EHRs) has created a fundamental tension in distributed healthcare computing: the data needed to train high-performance clinical models exists in abundance, yet cannot be aggregated across institutions due to privacy regulations such as HIPAA, GDPR, and the Brazilian Lei Geral de Prote\c{c}\~{a}o de Dados (LGPD). Federated Learning (FL) offers a principled solution by enabling collaborative model training without data centralization, but its security fundamentally depends on one underexplored question: who is actually allowed to participate, and how is that verified? Existing approaches either ignore participant authentication entirely, leaving Internet-distributed learning systems exposed to Sybil attacks, or rely on probabilistic reputation mechanisms that offer no deterministic security guarantees. This paper examines this gap through a formal comparative analysis of four distinct trust models applicable to FL systems in Internet-based services: the unverified baseline (T0), behavioral reputation (T1), centralized Public Key Infrastructure (T2), and decentralized Self-Sovereign Identity (T3). We characterize the security properties, regulatory alignment under LGPD, and operational economics of each model, then provide empirical validation of T3 using the MIMIC-IV clinical dataset across 10 federated institutions and 100 training rounds. The T3 implementation, which integrates W3C Decentralized Identifiers (DIDs) and Verifiable Credentials (VCs) with Ethereum-based smart contracts as an Internet middleware layer, achieves 100\% neutralization of external Sybil attacks from uncredentialed adversaries, clinically meaningful predictive performance (AUC-ROC = 0.954, Recall = 0.890), and a total protocol overhead below 1\% relative to local training time. An analytical cost model calibrated from experimental data enables Internet service consortia to project operational costs before adoption. Among all models examined, T3 offers the strongest combination of security guarantees, LGPD compliance, and economic viability for real-world inter-institutional collaboration over the Internet.
+\end{abstract}
+
+\begin{keywords}
+Federated Learning, Trust Models, Self-Sovereign Identity, Decentralized Identifiers, Verifiable Credentials, Blockchain, LGPD, Internet Security, Privacy, Sybil Attack
+\end{keywords}
+
+\end{frontmatter}
+
+
+%%==========================================================
+\section{Introduction}
+\label{sec:intro}
+%%==========================================================
+
+Healthcare institutions collectively hold one of the most valuable repositories of scientific knowledge on earth, encoded in billions of clinical encounters, laboratory results, imaging studies, and treatment outcomes. Transforming this dispersed knowledge into robust, generalizable AI models capable of supporting clinical decision-making requires data at a scale that no single institution can provide on its own. Rare diseases, pediatric populations, and demographically underrepresented groups are frequently absent from single-site datasets, causing models trained on local data to fail precisely when diversity matters most \citep{9146114}. The logical solution---pooling data across institutions via Internet-based services---runs directly into the regulatory frameworks designed to protect patient privacy: HIPAA in the United States \citep{10.1145/1273353.1273354}, GDPR across the European Union \citep{10.1145/3675888.3676142}, and, critically for the Brazilian context, the Lei Geral de Prote\c{c}\~{a}o de Dados (LGPD), enacted in 2018 and fully in force since 2020 \citep{LGPD2018}.
+
+Federated Learning (FL) was proposed precisely to resolve this tension \citep{mcmahan2017communication}. Rather than centralizing raw patient records, FL allows institutions to train local model copies on their own data and share only parameter updates over the Internet, which carry no directly identifiable information. The aggregated global model thus benefits from the statistical power of a large multi-site dataset without any institution relinquishing custody of its records. However, privacy-preserving data handling does not, by itself, guarantee system security in Internet-distributed environments. The distributed nature of FL introduces a distinct class of threats centered not on data exposure but on participant integrity. Poisoning attacks, in which adversaries submit manipulated gradients to degrade global model quality, and Sybil attacks, in which a single malicious actor registers multiple fictitious institutional identities to gain disproportionate influence over aggregation, represent documented and practically feasible threats to Internet-based FL systems \citep{10.1007/978-981-99-7032-2_3, qammar2023securing}.
+
+The research community has responded by integrating blockchain technology as an immutable coordination and auditing layer, yielding the Blockchain-based Federated Learning (BFL) family of distributed systems \citep{ning2024blockchain, weng2021deepchain}. Blockchain integration addresses auditability and removes the need for a trusted central aggregator, but it does not fundamentally resolve the problem of participant authentication in open Internet environments. A sufficiently patient adversary can accumulate a positive reputation before launching an attack, while a newly onboarded legitimate institution may be unfairly penalized for early performance variations driven by local data heterogeneity.
+
+This paper argues that the choice of trust model is the primary determinant of an FL system's security posture in Internet-based services and that this choice deserves systematic, formal treatment. We make three primary contributions. First, we propose a four-level taxonomy of trust models applicable to FL environments, characterized along four dimensions: the nature of the verification mechanism, the type of security guarantee it provides, its alignment with LGPD requirements for sensitive health data processed over the Internet, and its operational cost structure. Second, we design and formalize an SSI-FL protocol based on the W3C standards for Decentralized Identifiers (DIDs) and Verifiable Credentials (VCs), specified at a domain-agnostic level of abstraction, making it transferable beyond healthcare to any Internet application requiring authenticated collaborative computation. Third, we provide empirical validation of the strongest trust model (T3) through experiments on the MIMIC-IV critical care dataset \citep{johnson2020mimic}, producing: (a) an attack tree that characterizes adversary effort across all four trust models, (b) an analytical cost model $C(N,R)$ calibrated from experimental measurements that enables pre-deployment economic planning, and (c) a structured LGPD compliance mapping that characterizes each trust model's alignment with Brazilian data protection law, a dimension absent from all prior BFL work focused on GDPR and HIPAA.
+
+The remainder of this paper is organized as follows. Section~\ref{sec:background} provides the necessary background on FL security, Self-Sovereign Identity, and the LGPD. Section~\ref{sec:related} reviews related work on BFL security and authentication mechanisms. Section~\ref{sec:taxonomy} presents the trust model taxonomy. Section~\ref{sec:protocol} describes the SSI-based FL protocol in an abstract, domain-agnostic form. Section~\ref{sec:setup} details the experimental setup. Section~\ref{sec:results} presents the comparative evaluation results. Section~\ref{sec:discussion} discusses implications and limitations. Section~\ref{sec:conclusion} concludes the paper.
+
+
+%%==========================================================
+\section{Background}
+\label{sec:background}
+%%==========================================================
+
+\subsection{Security Threats in Federated Learning}
+
+FL's distributed training paradigm introduces a multi-dimensional attack surface in Internet-based environments. At the data level, participants may hold mislabeled, biased, or artificially manipulated training samples, leading to model poisoning even before gradient computation \citep{jimenez2025security}. At the communication level, gradient inversion attacks have demonstrated, under controlled conditions, the theoretical possibility of recovering training samples from gradient transmissions, though the practical feasibility under realistic FL configurations remains an active area of investigation \citep{valadi2025research}. At the participation level, Sybil attacks exploit the absence of identity verification by allowing a single adversary to register multiple fake nodes over the Internet, each appearing as a distinct legitimate participant, thereby diluting the contribution of honest institutions in weighted aggregation schemes.
+
+Differential privacy mechanisms add calibrated noise to gradient updates, bounding the maximum influence any single participant can exert on the global model \citep{abadi2016deep}. Reputation systems track historical contribution quality and use it to weight future aggregations \citep{10.1007/978-981-99-7032-2_3}. Each of these defenses addresses a distinct attack vector but shares a common limitation: they are reactive, statistical, and fundamentally probabilistic. None can provide a deterministic guarantee that a given participant is a legitimate healthcare institution rather than an adversarial actor connecting over the Internet.
+
+\subsection{Self-Sovereign Identity Standards}
+
+Self-Sovereign Identity (SSI) represents a paradigm shift in digital identity management for Internet services. Rather than relying on centralized authorities, such as certificate authorities in traditional Public Key Infrastructure (PKI) systems, SSI allows entities to generate and control their own digital identities without dependence on any single intermediary \citep{kubach2024taxonomy}. The W3C has standardized two foundational components of SSI that are directly relevant to FL participant authentication in Internet-distributed environments.
+
+Decentralized Identifiers (DIDs) are globally unique identifiers that follow the format \texttt{did:method:identifier}, where the method specifies the underlying registry, typically a blockchain or distributed ledger \citep{W3C_DID_2022}. Each DID is cryptographically bound to a key pair: the private key remains exclusively under the DID subject's control, while the public key is resolvable through the DID registry. This design ensures that identity ownership is mathematically provable and that no third party can impersonate or revoke an identity without access to the corresponding private key.
+
+Verifiable Credentials (VCs) complement DIDs by allowing trusted entities, called Issuers, to make cryptographically signed attestations about DID holders \citep{W3C2019}. In the healthcare context, a Ministry of Health or national medical licensing board might issue VCs attesting that a given hospital holds a valid operating license and is authorized to process patient data for research purposes. The VC is stored in the holder's digital wallet and can be presented as a Verifiable Presentation (VP) to any party requiring proof of those attributes, without requiring direct contact with the Issuer. Zero-knowledge proof variants of VCs allow selective disclosure, enabling an institution to prove it holds a valid license without revealing sensitive operational details.
+
+\subsection{LGPD and Health Data Governance}
+
+The Lei Geral de Prote\c{c}\~{a}o de Dados (LGPD), Law 13.709/2018, established Brazil's comprehensive framework for the protection of personal data \citep{LGPD2018}. Health data is explicitly classified as sensitive personal data under Article 5, II, and its processing is subject to stricter requirements than general personal data, as specified in Article 11. Among the most relevant provisions for inter-institutional FL systems operating as Internet services are: the requirement for a lawful basis for processing (Art. 7 and Art. 11), the obligation to implement technical and administrative security measures proportional to the sensitivity of the data (Art. 46), the principle of data minimization (Art. 6, III), transparency requirements that mandate clear disclosure of processing activities (Art. 6, VI), and the accountability principle under which data controllers must be able to demonstrate compliance (Art. 6, X). The LGPD also establishes significant penalties for violations, with fines of up to 2\% of gross revenue in Brazil capped at R\$ 50 million per infraction, under the authority of the Autoridade Nacional de Prote\c{c}\~{a}o de Dados (ANPD). Understanding which FL trust model most naturally satisfies these requirements is therefore both a technical and a regulatory imperative for Brazilian healthcare institutions operating Internet-based services.
+
+
+
+%%==========================================================
+\section{Related Work}
+\label{sec:related}
+%%==========================================================
+
+\subsection{Security and Authentication in Blockchain-based Federated Learning}
+
+The integration of blockchain with federated learning has attracted substantial research attention since 2018, motivated by FL's vulnerability to single-point-of-failure attacks and the absence of transparent coordination mechanisms in centralized aggregation architectures for Internet services. The systematic literature review by \citet{qammar2023securing}, which analyzed 41 BFL studies published between 2016 and 2022, provides the most comprehensive characterization of this design space available to date. That work categorizes BFL approaches along three axes: security and privacy mechanisms, record and reward schemes, and verification and accountability frameworks. Crucially, the authors explicitly identify participant authentication as an unresolved open problem, noting that ``it is crucial to develop frameworks to select devices that do not send fake or unreliable model updates for federated learning systems'' and recommending authentication-aware device registration as a primary future direction. The present work responds directly to this identified gap.
+
+From an architectural standpoint, how blockchain and FL components interact determines the system's scalability, latency, and security profile. \citet{xu2021method} propose a six-layer blockchain architecture for Internet-based FL comprising data, network, consensus, motivation, contract, and application layers, demonstrating with Hyperledger Fabric 2.0 that replacing the central aggregation server with a blockchain ledger eliminates the single point of failure and makes the training process traceable and auditable. Access conditions in that system are jointly set by existing nodes, and a new participant must pass two sequential model quality tests before being admitted: a public test against shared data and a private test using local data from incumbent nodes. This behavioral gatekeeping mechanism, however, evaluates model performance rather than institutional identity, leaving the Sybil problem structurally unresolved: any adversary capable of training a sufficiently accurate model on synthetic data can gain admission.
+
+Incentive mechanisms constitute another active area of BFL integration, closely related to the T1 trust model. \citet{wang2022blockchain} combine reputation points with Shapley values to quantify individual contributions and automatically distribute rewards through smart contracts, proposing a dual incentive scheme in which honest participants accumulate positive reputation, while malicious gradient submissions trigger negative point penalties that eventually restrict further participation. Their experimental evaluation confirms that FL loss converges more smoothly than centralized learning under this scheme. While effective at discouraging opportunistic free-riders, the mechanism shares the structural weakness of all behavioral trust models: a sophisticated adversary who contributes accurately during a reputation-building phase can subsequently execute a poisoning attack that the reputation score alone cannot prevent. This bootstrapping-and-exploitation attack pattern \citep{10.1007/978-981-99-7032-2_3} motivates the architectural shift toward proactive identity verification that we formalize in Section~\ref{sec:taxonomy}.
+
+Within the security and privacy category, several BFL systems address poisoning and Sybil attacks through statistical or cryptographic means. Biscotti \citep{biscotti2021shayan} uses verifiable random functions and multi-Krum aggregation to resist Sybil attacks in a peer-to-peer setting, but relies on stake ownership rather than institutional identity, making it unsuitable for regulated healthcare consortia where participants must be legally identified entities. These approaches share a common architectural choice: trust is evaluated reactively from submitted data, whereas the present work establishes trust proactively through institutional identity verification before any data is exchanged. Healthcare deployments are particularly vulnerable to this gap: \citet{srivastava2024federated} note that the high value of clinical data and the potential for financial gain from manipulating diagnostic models make Internet-based healthcare FL systems unusually attractive attack targets.
+
+Verification and accountability frameworks represent a parallel strand of BFL research. VFChain \citep{peng2021vfchain} introduces a committee-based selection scheme and a Dual Skip Chain data structure to provide verifiable and auditable federated learning, recording model commitments on-chain for retrospective inspection. The work of \citet{lo2022trustworthy} proposes a blockchain-based architecture for accountability and fairness in FL, with a smart contract managing a data model registry. These systems advance the auditability dimension of trust but address it at the model-update level rather than at the participant-identity level, leaving the Sybil problem structurally unsolved.
+
+\subsection{Federated Learning in Healthcare}
+
+The application of FL to clinical data presents challenges that go beyond those of general FL, including severe class imbalance in outcome prediction tasks, strict regulatory requirements, and the need for models that generalize across heterogeneous institutional data distributions. \citet{chaddad2026systematic} provides a systematic comparison of FL algorithms across five medical imaging datasets and six backbone architectures, demonstrating that FedProx and FedAvg achieve performance comparable to centralized learning while preserving data privacy, and that adversarial robustness varies substantially across model depths and dataset characteristics. That work underscores both the clinical viability of FL and the importance of evaluating robustness under realistic non-IID conditions, which informs the experimental design of the present paper. However, participant authentication is not addressed, consistent with the observation that most healthcare FL literature treats the participating nodes as implicitly trustworthy.
+
+\subsection{Self-Sovereign Identity in Healthcare Systems}
+
+The application of SSI standards to healthcare contexts has been explored primarily in the domain of patient-controlled data access rather than institutional participation in collaborative computation. \citet{kubach2024taxonomy} provides a taxonomy of challenges for SSI systems, identifying governance, interoperability, and revocation management as primary open problems, and confirming that SSI offers stronger identity sovereignty than centralized PKI while avoiding its single-point-of-failure limitations. The W3C standards for Decentralized Identifiers \citep{W3C_DID_2022} and Verifiable Credentials \citep{W3C2019} form the technical foundation of SSI: DIDs are persistent, globally unique identifiers that resolve to DID documents containing public keys and service endpoints, while VCs are tamper-evident digital statements made by an issuer, cryptographically signed to enable verification without real-time issuer communication.
+
+In the healthcare sector, SSI has been explored for role-based access control over electronic health records, cross-border patient record management, and privacy-preserving data disclosure \citep{kubach2024taxonomy}. These scenarios demonstrate SSI's technical maturity for institutional identity management in regulated healthcare environments. However, they share a common focus: controlling who can access a patient's medical records rather than who can participate in federated machine learning over the Internet. The integration of SSI with collaborative machine learning introduces distinct requirements absent from patient-facing SSI deployments, including per-round credential verification at training time, coupling of identity proofs with gradient submission integrity, and dynamic authorization rules that vary per federated task. To our knowledge, no prior work has applied W3C SSI standards to participant authentication in federated model training. This paper bridges that gap by formalizing the SSI-FL protocol and evaluating it empirically on a clinical dataset under adversarial conditions.
+
+\subsection{Positioning of the Present Work}
+
+Table~\ref{tab:related} summarizes the key distinctions between the present work and representative prior approaches. The distinguishing characteristic of this paper is the combination of proactive identity-based authentication, a formal trust model taxonomy, LGPD compliance analysis, and an empirically calibrated cost model, none of which have appeared together in any prior BFL study.
+
+\begin{table*}[!ht]
+\caption{Comparison with representative related work. ID-Auth: proactive identity verification mechanism; AT: attack tree analysis; Cost: analytical cost model; LGPD: LGPD compliance mapping; HC: clinical dataset; Sybil: external Sybil resistance (Full/Partial/No).}
+\label{tab:related}
+\centering
+\begin{tabularx}{\textwidth}{lXXXXXX}
+\toprule
+\textbf{Work} & \textbf{ID-Auth} & \textbf{AT} & \textbf{Cost Model} & \textbf{LGPD} & \textbf{HC Dataset} & \textbf{Sybil} \\
+\midrule
+Xu et al. \citep{xu2021method} & Performance-based SC & No & No & No & No & Partial \\
+Wang et al. \citep{wang2022blockchain} & Reputation+Shapley & No & No & No & No & Partial \\
+Biscotti \citep{biscotti2021shayan} & Stake-based & No & No & No & No & Partial \\
+VFChain \citep{peng2021vfchain} & None & No & No & No & No & No \\
+Lo et al. \citep{lo2022trustworthy} & None & No & No & No & Yes & No \\
+\textbf{This work} & \textbf{SSI (DIDs+VCs)} & \textbf{Yes} & \textbf{Yes} & \textbf{Yes} & \textbf{Yes} & \textbf{Full} \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+
+%%==========================================================
+\section{A Taxonomy of Trust Models for Federated Learning}
+\label{sec:taxonomy}
+%%==========================================================
+
+The term ``trust'' is frequently invoked in FL literature without a formal definition, leading to architectures that conflate authentication, authorization, and reputation. We propose a four-level taxonomy that distinguishes these concepts and characterizes their implications along four dimensions: (i) the verification mechanism, (ii) the type of security guarantee provided, (iii) alignment with LGPD requirements for sensitive health data processed over the Internet, and (iv) the operational overhead imposed on participants.
+
+\textbf{T0: No-Trust Baseline.} The simplest FL configuration accepts gradient contributions from any node that can reach the aggregation endpoint over the Internet. No participant authentication occurs prior to aggregation. This model, which underlies several early FL frameworks and remains common in research prototypes, provides zero protection against Sybil attacks by definition. Any adversary with network access can register as many nodes as desired and inject arbitrary gradient updates. From an LGPD perspective, this model is fundamentally incompatible with Articles 46 and 6, X, as there is no mechanism to demonstrate that only authorized entities processed sensitive health data.
+
+\textbf{T1: Behavioral Reputation.} Reputation-based systems assign trust scores to participants based on the statistical quality of their gradient submissions, typically measuring cosine similarity to the global gradient direction, historical consistency, or loss improvement contributions \citep{10.1007/978-981-99-7032-2_3}. Trust accumulates over time and is used to weight future contributions. The security guarantee is probabilistic: an adversary who submits consistently benign updates for a period can accumulate sufficient reputation to subsequently launch a high-impact poisoning attack. Sybil resistance depends on the assumption that maintaining multiple fake identities with high reputation is economically costly, an assumption that does not hold if the attacker can automate benign behavior. LGPD alignment is partial at best, as the system cannot verify that participants are legally authorized data controllers under Brazilian law.
+
+\textbf{T2: Centralized PKI.} Traditional certificate-based authentication, as used in TLS and enterprise identity management for Internet services, can be applied to FL by requiring each participant to present a certificate signed by a trusted Certificate Authority (CA). This provides a cryptographic guarantee of identity, distinguishing it from the probabilistic guarantees of T1. However, centralizing trust in the CA introduces a critical single point of failure: a compromised CA can issue fraudulent certificates to malicious participants, and the CA operator itself may represent a potential point of coercion or regulatory overreach. Furthermore, traditional PKI systems are not designed for the dynamic, multi-stakeholder governance structures typical of healthcare consortia, making it difficult to implement fine-grained, per-task authorization rules.
+
+\textbf{T3: Decentralized Self-Sovereign Identity.} The SSI-based model anchors trust in cryptographically verifiable institutional identity, with credentials issued by domain-specific trusted authorities such as national health regulatory bodies, and their validity enforced by smart contracts on a blockchain. Unlike T2, no single entity controls the trust infrastructure: multiple Issuers can operate independently, the DID registry is replicated across blockchain nodes, and smart contract logic is publicly auditable. Unlike T1, trust is established before any gradient is submitted rather than inferred from behavioral history. An adversary seeking to inject malicious participants must compromise a credentialing authority, a substantially harder task than generating synthetic behavioral patterns. Table~\ref{tab:taxonomy} summarizes the comparison across all four trust models.
+
+\begin{table*}[!ht]
+\caption{Comparative taxonomy of trust models applicable to Federated Learning in Internet-based health services. Security guarantee type: D = Deterministic, P = Probabilistic, N = None. LGPD alignment: Full, Partial, or None.}
+\label{tab:taxonomy}
+\centering
+\begin{tabularx}{\textwidth}{lXXXX}
+\toprule
+\textbf{Model} & \textbf{Verification Mechanism} & \textbf{Sybil Resistance} & \textbf{Security Guarantee} & \textbf{LGPD Alignment} \\
+\midrule
+T0: No-Trust Baseline & None & None & N & None \\
+T1: Behavioral Reputation & Statistical gradient analysis & Low (evadable) & P & Partial \\
+T2: Centralized PKI & X.509 certificates via CA & Medium & D (centralized) & Partial \\
+T3: SSI Decentralized & DIDs + VCs + Smart Contracts & High (requires Issuer compromise) & D (decentralized) & Full \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+A critical distinction between T2 and T3 is how each model fares under adversarial conditions targeting the trust infrastructure itself. In T2, a single compromised CA invalidates the entire system's security guarantees. In T3, the trust infrastructure is distributed: credential Issuers can be multiple independent regulatory bodies, the DID registry relies on blockchain consensus rather than a single server, and smart contract logic is immutable once deployed. This structural difference has direct implications for LGPD compliance: the accountability principle (Art. 6, X) is more naturally satisfied by an auditable, append-only blockchain record than by centralized CA logs that are subject to tampering or deletion.
+
+
+%%==========================================================
+\section{The SSI-FL Protocol}
+\label{sec:protocol}
+%%==========================================================
+
+We now describe the T3 trust model as an abstract, domain-agnostic protocol that can be applied to any FL deployment requiring participant authentication in Internet-distributed environments. The protocol operates in four sequential phases, each building cryptographic guarantees that subsequent phases depend upon. Figure~\ref{fig:protocol} illustrates the interaction between protocol components.
+
+\begin{figure*}[!ht]
+\centering
+\includegraphics[width=\textwidth]{Fig1_SSI-FL Protocol Diagram.jpg}
+\caption{SSI-FL Protocol sequence diagram. Five swim lanes represent the protocol actors: Participant ($P_i$, off-chain), Trusted Issuer ($\mathcal{I}$, credential authority), Registry Smart Contract, FL Task Smart Contract, and IPFS Storage (decentralized). \textbf{Phase 1} (Credential Issuance): $P_i$ submits an accreditation request with institutional documentation; $\mathcal{I}$ returns a Verifiable Credential $VC_i$ signed with $sk_\mathcal{I}$. \textbf{Phase 2} (On-chain Registration): $P_i$ registers its DID and public key $pk_i$ in the Registry Smart Contract, which confirms the anchor via transaction receipt. \textbf{Phase 3} (Authenticated Participation): $P_i$ submits a Verifiable Presentation $VP_i = (VC_i, \sigma_i, \text{nonce}_r)$ to the FL Task Contract, which retrieves $pk_\mathcal{I}$ and checks revocation status from the Registry; the contract returns either \textit{Authorized} (added to $\mathcal{A}_r$) or \textit{Rejected}. \textbf{Phase 4} (Verified Aggregation): $P_i$ uploads the local model update $W_i$ to IPFS and receives $CID_i$; it then submits the signed tuple $(\text{did}_i, CID_i, \text{sign}_{sk_i})$ to the Task Contract; the aggregation node retrieves verified updates via their CIDs and computes the new global model $W_{r+1} = \sum \alpha_i W_i$, whose CID is recorded on-chain.}
+\label{fig:protocol}
+\end{figure*}
+
+\textbf{Phase 1: Credential Issuance.} A prospective participant $P_i$ applies to a domain-appropriate Trusted Issuer $\mathcal{I}$, which conducts off-chain verification of $P_i$'s real-world credentials, such as institutional licenses, ethics committee approvals, and data governance certifications. Upon successful verification, $\mathcal{I}$ generates a Verifiable Credential $vc_i$ containing relevant attributes and an expiration date, and signs it: $vc_i = \text{Sign}(sk_{\mathcal{I}},\ \text{attrs}(P_i) \cup \{exp, iss\})$. The credential is delivered to $P_i$'s identity wallet.
+
+\textbf{Phase 2: On-chain Registration.} $P_i$ generates a DID key pair $(sk_i, pk_i)$ and submits a registration transaction to the Registry Smart Contract, anchoring $pk_i$ to $did_i$ on the blockchain. This creates a permanent, publicly verifiable link between $P_i$'s cryptographic identity and its on-chain record. The Registry Contract also stores the validity status of $vc_i$ after the Issuer endorses it on-chain, enabling real-time revocation if $P_i$'s institutional status changes.
+
+\textbf{Phase 3: Authenticated Participation.} When a new training round $r$ begins, a participant $P_i$ constructs a Verifiable Presentation $vp_i^r$ derived from $vc_i$, and submits it to the FL Task Smart Contract. The contract executes deterministic verification: it retrieves $pk_{\mathcal{I}}$ from the Registry, validates the cryptographic signature on $vp_i^r$, checks that $vc_i$ has not expired or been revoked, and confirms that the credential attributes satisfy the task-specific eligibility criteria defined by the federation coordinator. Formally, the authorization predicate is $\text{auth}(P_i, r) = \text{SigVerify}(pk_\mathcal{I}, vp_i^r) \wedge \neg \text{Revoked}(did_i) \wedge \text{EligCheck}(vc_i, \text{req}_r)$. Only if $\text{auth}(P_i, r) = \top$ is $P_i$ added to the authorized set $\mathcal{A}_r$.
+
+\textbf{Phase 4: Verified Aggregation.} After local training, $P_i \in \mathcal{A}_r$ uploads its model update $W_i^r$ to a content-addressed distributed storage system, receiving a Content Identifier $CID_i^r$. It then signs $CID_i^r$ with $sk_i$ and submits the signed tuple $(\text{did}_i, CID_i^r, \sigma_i^r)$ to the Task Contract. The aggregation node retrieves only updates from participants in $\mathcal{A}_r$, performs a final signature verification against the DID registry, and applies weighted averaging exclusively over the verified set. This layered design ensures that even if a participant is compromised after Phase 3, the aggregation node has an additional cryptographic check before incorporating its update.
+
+The protocol's key security property is that participation requires possession of a valid VC signed by a recognized Issuer, and VCs cannot be generated without off-chain verification by that Issuer. Generating a fake institutional identity (Sybil attack) therefore requires either compromising a credentialing authority or forging a cryptographic signature on a W3C VC, both of which are computationally infeasible under standard cryptographic assumptions. Algorithm~\ref{alg:auth} formalizes the on-chain authorization logic.
+
+\begin{algorithm}
+\caption{On-Chain Participant Authorization (Phase 3)}
+\label{alg:auth}
+\begin{algorithmic}[1]
+\REQUIRE Verifiable Presentation $vp_i^r$, Task requirements $\text{req}_r$
+\ENSURE $\text{authorized} \in \{\top, \bot\}$
+\STATE Retrieve $pk_\mathcal{I}$ from Registry Contract
+\IF{$\neg\text{SigVerify}(pk_\mathcal{I}, vp_i^r)$} \RETURN $\bot$ \ENDIF
+\STATE Retrieve revocation status of $did_i$
+\IF{$\text{Revoked}(did_i)$} \RETURN $\bot$ \ENDIF
+\STATE Extract attributes from $vp_i^r$
+\IF{$\neg\text{EligCheck}(\text{attrs}, \text{req}_r)$} \RETURN $\bot$ \ENDIF
+\STATE Add $did_i$ to $\mathcal{A}_r$; emit event $\text{Authorized}(did_i, r)$
+\RETURN $\top$
+\end{algorithmic}
+\end{algorithm}
+
+
+%%==========================================================
+\section{Experimental Setup}
+\label{sec:setup}
+%%==========================================================
+
+\subsection{Dataset and Preprocessing}
+
+We evaluate the SSI-FL protocol (T3) using the MIMIC-IV clinical dataset \citep{johnson2020mimic}, a de-identified electronic health records repository maintained by the MIT Laboratory for Computational Physiology containing over 546,000 hospital admissions from Beth Israel Deaconess Medical Center. Access was obtained under a PhysioNet credentialed user agreement; no direct interaction with human subjects occurred. The prediction target is in-hospital mortality, a clinically critical binary outcome exhibiting severe class imbalance (approximately 10\% positive rate in the processed cohort), which is representative of real-world challenges in clinical AI development.
+
+Feature engineering extracted seven clinically motivated predictors from admission and demographic records: patient age, gender, race, insurance type, hospital admission type, and admission source, yielding a tabular dataset suitable for federated training without requiring raw time-series or imaging data. To address class imbalance, we applied the SMOTETomek resampling strategy \citep{batista2004balancing} independently within each client's local dataset after the non-IID partitioning step, which preserves the federated learning premise by ensuring that no raw data is ever centralized. Each client applies SMOTETomek only to its own partition, so the synthetic samples are generated from local statistics and never shared across institutions.
+
+\subsection{Federated Configuration}
+
+The FL system was configured with $N = 10$ simulated federated clients, each representing a distinct healthcare institution with a statistically distinct patient population distribution, communicating over a simulated Internet environment. Data heterogeneity was introduced by assigning non-IID partitions to each client, with the distribution of patient demographics and outcome rates varying substantially across sites. This setup deliberately simulates realistic inter-institutional variation, including a trauma-specialized facility with elevated mortality rates, a geriatric-focused center, and several general-purpose hospitals, to test the framework's robustness under the heterogeneous conditions that characterize real healthcare consortia connected via the Internet.
+
+Each client trained a logistic regression classifier using the FedProx algorithm \citep{li2020federated} with proximal term $\mu = 0.01$, which limits client drift relative to the global model, a particularly important property in highly non-IID settings. Local training was executed for 10 epochs per round, and global aggregation was performed over $R = 100$ communication rounds using weighted FedAvg proportional to local dataset sizes. The security experiments introduced a Sybil adversary equipped with 5 fake client identities, each executing a targeted label-flipping attack: the local training labels of the minority class (deceased patients) were systematically flipped to the majority class (survivors) before gradient computation, producing updates that, when aggregated, push the global model toward a higher False Negative Rate on high-risk patients. This attack strategy was chosen because it is clinically targeted, relatively inconspicuous in gradient norm statistics, and representative of realistic insider-motivated manipulation in healthcare FL deployments \citep{jimenez2025security}. Table~\ref{tab:setup} summarizes the experimental configuration.
+
+\begin{table}[!ht]
+\caption{Experimental configuration summary.}
+\label{tab:setup}
+\centering
+\begin{tabularx}{\columnwidth}{lX}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Dataset & MIMIC-IV (PhysioNet) \\
+Prediction task & In-hospital mortality \\
+Features & 7 clinical/demographic variables \\
+Class imbalance handling & SMOTETomek (applied per client) \\
+Number of clients & 10 (legitimate) + 5 (Sybil) \\
+FL framework & Flower (flwr) v1.5, Python 3.10 \\
+FL algorithm & FedProx ($\mu = 0.01$) \\
+Attack strategy & Label flipping (minority class) \\
+Local epochs per round & 10 \\
+Communication rounds & 100 \\
+Blockchain platform & Ethereum (Sepolia testnet) \\
+Identity standard & W3C DIDs + VCs (did:ethr method) \\
+Storage & IPFS (content-addressed) \\
+Classifier & Logistic Regression \\
+Hardware & Intel Core i7-12700H, 32 GB RAM \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Security Evaluation Protocol}
+
+To quantify the benefit of the T3 trust model, experiments were run under three conditions: the ideal scenario with 10 legitimate clients and no adversarial activity; the T0 baseline (no identity verification) under active Sybil attack with 5 adversarial nodes; and T3 (SSI-FL) under the same Sybil attack. The attack was considered successful if any adversarial gradient was incorporated into a global model aggregation step. For each condition, we report accuracy, AUC-ROC, Recall (sensitivity), Precision, F1-score, and False Negative Rate (FNR) measured at Round 100. All experiments were repeated five times to account for stochasticity in SMOTETomek sampling.
+
+
+%%==========================================================
+\section{Results and Comparative Evaluation}
+\label{sec:results}
+%%==========================================================
+
+\subsection{Convergence and Stability}
+
+Figure~\ref{fig:convergence} presents the global model's accuracy and loss trajectories over 100 federated rounds under three conditions. Under T3, the model converges rapidly, with global accuracy stabilizing above 88\% by approximately Round 4 and remaining stable throughout subsequent rounds. The loss trajectory exhibits a smooth, monotonic decrease, converging to $\mathcal{L} \approx 0.272$, with no oscillations or divergence, indicating that SSI-based authentication does not interfere with the optimization dynamics of FedProx. This stability persists despite the significant data heterogeneity across clients, validating that the proximal regularization term effectively prevents client drift in non-IID settings.
+
+\begin{figure*}[!ht]
+\centering
+\includegraphics[width=\textwidth]{Fig2_convergence_100rounds_final.png}
+\caption{Convergence behavior over 100 federated communication rounds under three experimental conditions. \textbf{Left panel} (Global Accuracy): all three conditions begin from a similar starting point near Round 0. T3: SSI-FL (solid blue) and Ideal -- No Attack (dashed green) converge rapidly and reach a stable plateau of approximately 88.5\% accuracy by Round 4, marked by a vertical dashed line, and maintain this level with minimal variance throughout the remaining rounds. T0: Baseline under Sybil attack (solid red) peaks near 84\% at Round 4 but degrades progressively as poisoned updates accumulate, stabilizing around 75.8\% with visible oscillation from Round 30 onward. \textbf{Right panel} (Global Training Loss): T3 (solid blue) and Ideal (dashed green) decrease smoothly and monotonically, converging to approximately $\mathcal{L}$ between 0.272 and 0.280 by Round 100. T0 (solid red) converges more slowly and to a substantially higher loss of approximately 0.41--0.45, with persistent oscillation throughout, reflecting the destabilizing effect of the adversarial gradient injections on the optimization trajectory.}
+\label{fig:convergence}
+\end{figure*}
+
+The T0 baseline under Sybil attack exhibits a markedly different pattern. From Round 1 onward, the five adversarial nodes submit poisoned updates over the Internet that progressively degrade the global model. By Round 50, the T0 system under attack shows a mean accuracy drop of 12.7 percentage points compared to the T3 condition under the same attack (T3 accuracy = 88.5 $\pm$ 0.6\%, T0 accuracy = 75.8 $\pm$ 1.2\%; mean $\pm$ SD across 5 independent runs; Mann-Whitney $U = 0.0$, $p = 0.008$, two-tailed), and the FNR rises from 11\% to 30\%, meaning the model under attack fails to identify approximately one in three patients who will die in the hospital. Under T3, none of the five Sybil registration attempts succeeded because the adversary lacked Verifiable Credentials signed by the Trusted Issuer. The global model, therefore, aggregated updates exclusively from the 10 legitimate clients, maintaining performance identical to that of the attack-free setting.
+
+\subsection{Clinical Predictive Performance}
+
+Table~\ref{tab:clinical} reports the predictive performance metrics of the T3-protected global model at Round 100. The AUC-ROC of 0.954 indicates excellent discriminative ability across the full range of classification thresholds, comfortably exceeding the 0.85 threshold commonly cited as the minimum for clinical decision support tools. The Recall (sensitivity) of 0.890 means that approximately 89 out of every 100 patients who will die in the hospital are correctly identified as high-risk, enabling timely clinical interventions. The relatively lower Precision (0.721) reflects a conservative decision strategy that accepts a higher rate of false positives, which in the clinical context means unnecessary enhanced monitoring of patients who ultimately survive, a far less dangerous error than the converse.
+
+\begin{table}[!ht]
+\caption{Clinical predictive performance at Round 100 (mean across 5 independent runs; 95\% CI in parentheses). T3 results correspond to the SSI-FL system under active Sybil attack; T0 results correspond to the unprotected baseline under the same attack.}
+\label{tab:clinical}
+\centering
+\begin{tabularx}{\columnwidth}{lXX}
+\toprule
+\textbf{Metric} & \textbf{T3 (Under Attack)} & \textbf{T0 (Under Attack)} \\
+\midrule
+AUC-ROC & \textbf{0.954} (0.949--0.959) & 0.813 (0.801--0.825) \\
+Accuracy & \textbf{88.5\%} (87.4--88.8) & 75.8\% (74.3--77.3) \\
+Recall (Sensitivity) & \textbf{0.890} (0.882--0.898) & 0.700 (0.684--0.716) \\
+Precision & \textbf{0.721} (0.711--0.731) & 0.561 (0.543--0.579) \\
+F1-Score & \textbf{0.796} (0.788--0.804) & 0.621 (0.607--0.635) \\
+False Negative Rate & \textbf{11.0\%} (10.2--11.8) & 30.0\% (28.4--31.6) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The contrast with T0 under the same attack conditions is stark. An AUC-ROC of 0.813 under T0 represents a clinically marginal classifier, and the FNR of 30\% would make such a system genuinely dangerous in a clinical setting. These numbers are not merely statistical artifacts: in a scenario where 1,000 high-risk patients are evaluated per day across participating institutions, the difference between 11\% and 30\% FNR corresponds to roughly 190 additional high-risk patients missed per day. The T3 trust model, by preventing unauthorized nodes from contributing to aggregation, preserves the model's clinical utility under adversarial conditions where the T0 model fails.
+
+\subsection{Attack Tree Analysis}
+
+Figure~\ref{fig:attacktree} presents an attack tree analysis characterizing the adversarial effort required to compromise participant authorization under each trust model. The effort scores (1/5 to 5/5) are qualitative, illustrative estimates based on the number and nature of required attack steps rather than a formal metric such as CVSS; they are intended to convey relative ordering rather than precise quantitative values. In T0, the tree has a single leaf node with trivial effort: connecting to the aggregation endpoint over the Internet. In T1, the attacker must accumulate sufficient reputation, which requires submitting benign updates over multiple rounds; this category encompasses a heterogeneous family of mechanisms, from simple cosine-similarity scoring to more sophisticated reputation protocols such as FLTrust and multi-party reputation with ZKPs, each with materially different security properties. The 2/5 score assigned to T1 represents a conservative, evadable variant typical in production BFL deployments. In T2, the attacker must either compromise the CA's private key or deceive the CA's verification process, both of which require substantial effort. In T3, the attack tree requires compromising a domain-specific regulatory authority with its own institutional security controls, a task several orders of magnitude harder than the T1 strategy and harder than T2 because multiple independent Issuers can be involved, eliminating the single-point-of-failure risk.
+
+\begin{figure*}[!ht]
+\centering
+\includegraphics[width=\textwidth]{fig3_attack_tree.jpg}
+\caption{Attack tree for Sybil injection across the four trust models (T0--T3). The root node represents the adversary's goal; OR-branches at the root indicate that any single trust model may be targeted. \textbf{T0 (No-Trust Baseline, red):} requires only an unauthenticated connection to the aggregation endpoint -- trivial effort (1/5). \textbf{T1 (Behavioral Reputation, orange):} requires submitting benign gradients for $N$ rounds to accumulate reputation before launching a poisoning attack -- low to moderate effort (2/5). \textbf{T2 (Centralized PKI, yellow):} requires compromising the Certificate Authority's private key OR deceiving the CA verification process -- moderate effort (3/5); the OR-gate reflects that either sub-goal suffices. \textbf{T3 (SSI Decentralized, green):} requires both compromising a domain-specific regulatory Trusted Issuer AND cryptographically forging a W3C Ed25519 Verifiable Credential signature -- very high effort (5/5); the AND-gate reflects that both sub-goals must be achieved simultaneously. The bottom legend shows the full adversarial effort scale from Trivial to Infeasible. Moving from T0 to T3 monotonically increases adversarial cost, from a trivial unauthenticated connection to the conjunction of an institutional compromise and a cryptographic forgery.}
+\label{fig:attacktree}
+\end{figure*}
+
+\subsection{Analytical Cost Model}
+
+A recurring concern about blockchain-integrated systems is operational cost. Our empirical experiments provide the data necessary to calibrate an analytical model that any prospective adopter can use for pre-deployment cost estimation. The total cost of running the SSI-FL protocol for $N$ participants over $R$ rounds decomposes into three components:
+\begin{equation}
+C(N, R) = C_{\text{reg}} \cdot N + C_{\text{auth}} \cdot N \cdot R + C_{\text{submit}} \cdot R
+\label{eq:cost}
+\end{equation}
+where $C_{\text{reg}}$ is the one-time DID registration cost per participant, $C_{\text{auth}}$ is the per-round credential verification cost per participant, and $C_{\text{submit}}$ is the per-round aggregation event cost. From our experimental runs on the Ethereum Sepolia testnet at prevailing gas prices (approximately USD 0.0015 per transaction), we calibrated: $C_{\text{reg}} \approx \$ 0.067$, $C_{\text{auth}} \approx \$ 0.009$, and $C_{\text{submit}} \approx \$ 0.06$. Substituting these values into Equation~\ref{eq:cost} for $N = 10$ and $R = 100$ yields $C(10, 100) = 0.067 \times 10 + 0.009 \times 10 \times 100 + 0.06 \times 100 = \$ 15.67$. The empirically observed total across five experimental runs was \$16.80--\$19.20 (mean \$18.10), a discrepancy of approximately 15\% attributable to gas price volatility on the Sepolia testnet during the measurement period. Practitioners planning mainnet deployments should apply a volatility buffer of 15--25\% over model estimates, or consider permissioned platforms with fixed transaction pricing.
+
+\begin{table*}[!ht]
+\caption{Projected operational costs in USD for the SSI-FL protocol under varying numbers of participants and training rounds, computed from Equation~\ref{eq:cost} with calibrated parameters. Per-institution cost is obtained by dividing total cost by $N$.}
+\label{tab:cost}
+\centering
+\begin{tabularx}{\textwidth}{lXXXX}
+\toprule
+\textbf{Participants ($N$)} & \textbf{Rounds ($R$) = 50} & \textbf{$R$ = 100} & \textbf{$R$ = 200} & \textbf{Per-Institution ($R$=100)} \\
+\midrule
+5 & \$ 5.59 & \$ 10.84 & \$ 21.34 & \$ 2.17 \\
+10 & \$ 8.17 & \$ 15.67 & \$ 30.67 & \$ 1.57 \\
+20 & \$ 13.34 & \$ 25.34 & \$ 49.34 & \$ 1.27 \\
+50 & \$ 28.85 & \$ 54.35 & \$ 105.35 & \$ 1.09 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Table~\ref{tab:cost} projects operational costs for representative consortium configurations. Two properties of this cost structure are particularly favorable for Internet service adoption. First, costs scale linearly with both $N$ and $R$, which means the per-institution cost decreases as the consortium grows, creating an economic incentive for broad participation. Second, $C_{\text{submit}}$ is independent of model complexity: verifying a large neural network costs exactly the same as verifying a simple logistic regression, because the smart contract stores only fixed-length cryptographic hashes. This invariance makes the SSI-FL protocol economically viable for complex deep learning tasks that might otherwise incur prohibitive on-chain costs under naive blockchain integration schemes.
+
+\subsection{Computational Overhead}
+
+The blockchain verification process adds a mean of $0.020 \pm 0.003$ seconds per communication round, and IPFS upload and retrieval operations add a further $0.15 \pm 0.04$ seconds per round, yielding a combined protocol overhead of $0.170 \pm 0.043$ seconds. Relative to the dominant local model training time of $17.1 \pm 0.8$ seconds, the total protocol overhead is approximately $0.99\%$, with the blockchain component alone accounting for $0.12\%$ and IPFS accounting for the remainder. Both figures are negligible relative to training time; they are reported separately here so that implementers can isolate the impact of each architectural component when evaluating alternative storage or blockchain configurations. These measurements confirm that the security benefits of the SSI-FL protocol do not come at the expense of training throughput.
+
+\subsection{LGPD Compliance Mapping}
+
+Table~\ref{tab:lgpd} maps each trust model against the LGPD articles most relevant to inter-institutional health data processing over Internet services. Two clarifications on the table design are warranted before discussing the results. First, Article 5, II classifies health data as sensitive personal data regardless of the technical architecture used to process it; all four trust models receive the same partial ($\circ$) assessment on this row because the classification is a legal attribute of the data, not of the authentication mechanism. Second, Article 6, III (data minimization) is assessed based on whether gradient updates are transmitted exclusively to parties with a demonstrated authorization to receive them. Under T3, the per-round credential verification ensures that only authenticated institutions download the global model and contribute updates, effectively minimizing the set of entities that handle any representation of patient data; under T0 and T1, this cannot be guaranteed. The analysis reveals that T3 is the only model capable of satisfying all applicable regulatory dimensions examined.
+
+The most significant differentiator is Article 46, which requires data controllers and processors to implement technical and organizational security measures to protect personal data from unauthorized access. Under T0 and T1, the lack of rigorous participant authentication means that unauthorized entities can, at least in principle, participate in the federated training process, thereby violating these provisions. Under T2, the centralization of trust in a CA creates a regulatory gray area regarding accountability, particularly when the CA is operated by a private entity rather than a government body. Under T3, the combination of regulatory-authority-issued VCs and blockchain-enforced access control provides a technically robust and legally defensible mechanism for satisfying Article 46.
+
+\begin{table*}[!ht]
+\caption{LGPD compliance mapping for each trust model. Assessment: $\checkmark$ = satisfies, $\circ$ = partially satisfies, $\times$ = does not satisfy. Art.~5, XIV applies to the data category regardless of trust model; the distinction between models lies in whether the processing \textit{mechanism} satisfies the remaining articles.}
+\label{tab:lgpd}
+\centering
+\begin{tabularx}{\textwidth}{lXXXX}
+\toprule
+\textbf{LGPD Provision} & \textbf{T0} & \textbf{T1} & \textbf{T2} & \textbf{T3} \\
+\midrule
+Art. 5, II: Sensitive data classification & $\circ$ & $\circ$ & $\circ$ & $\circ$ \\
+Art. 11: Legal basis for sensitive data processing & $\times$ & $\circ$ & $\circ$ & $\checkmark$ \\
+Art. 6, III: Data minimization (only authorized parties receive gradients) & $\times$ & $\circ$ & $\circ$ & $\checkmark$ \\
+Art. 46: Technical security measures for data protection & $\times$ & $\times$ & $\circ$ & $\checkmark$ \\
+Art. 6, X: Accountability and demonstrable compliance & $\times$ & $\circ$ & $\circ$ & $\checkmark$ \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Article 6, X deserves particular attention. The accountability principle requires that data controllers demonstrate compliance with the LGPD, not merely claim it. The immutable, time-stamped blockchain record of every authorization event, every credential verification, and every model submission in the T3 model constitutes exactly the kind of demonstrable compliance evidence that regulators and auditors require. T1 and T2 systems, by contrast, typically rely on mutable server-side logs that can be altered or deleted and whose integrity cannot be independently verified.
+
+
+%%==========================================================
+\section{Discussion}
+\label{sec:discussion}
+%%==========================================================
+
+\subsection{Practical Implications for Internet-Based Health Service Consortia}
+
+The results presented in this paper converge on a clear recommendation for healthcare institutions planning federated AI deployments as Internet services: the trust model is not a secondary architectural decision but rather the primary determinant of both security posture and regulatory compliance. The performance difference between T0 and T3 under attack, a 14-point AUC-ROC gap and a 19-point FNR increase, is far larger than the differences typically reported in comparisons of FL aggregation algorithms or model architectures. This suggests that researchers and system designers who invest heavily in algorithmic improvements while neglecting participant authentication are optimizing the wrong variable.
+
+For Brazilian healthcare institutions specifically, the LGPD dimension adds urgency to this recommendation. The ANPD has demonstrated increasing enforcement activity since 2022, and health data, classified as sensitive under Article 5, II, carries the highest regulatory risk. Institutions that deploy FL-based Internet services without robust participant authentication mechanisms may be unable to demonstrate compliance with Article 46 in the event of a security incident, thereby incurring the maximum applicable penalties. The T3 model's blockchain audit trail provides exactly the demonstrable compliance evidence that the accountability principle demands.
+
+The cost analysis further supports T3 adoption. A total expenditure of approximately \$1.09 to \$2.17 per institution for a complete 100-round model development cycle is negligible relative to the cost of data breach incidents, regulatory penalties, or the development cost of clinical AI systems, which typically run into hundreds of thousands of dollars. The linear cost scaling with consortium size and the model-complexity-invariant on-chain verification costs remove the two most commonly cited economic objections to blockchain-integrated FL for Internet services.
+
+\subsection{Limitations and Boundary Conditions}
+
+Several important limitations qualify the claims made in this paper. First, the experimental evaluation was conducted on a single dataset (MIMIC-IV) with a single prediction task (in-hospital mortality) and a single model architecture (logistic regression). While these choices reflect realistic FL deployment conditions, they do not capture the full breadth of clinical AI applications, including imaging analysis, natural language processing of clinical notes, or longitudinal outcome prediction, each of which introduces distinct data heterogeneity and communication cost profiles. Extending the evaluation to multi-modal clinical data remains a priority for future work.
+
+Second, the security evaluation focused exclusively on Sybil attacks launched by external adversaries lacking valid credentials. The T3 model provides deterministic protection against this threat class, but by design, does not defend against insider attacks launched by legitimate, credentialed institutions that subsequently turn malicious. Defending against insider threats requires complementary mechanisms such as Byzantine-robust aggregation rules or differential privacy, both of which are architecturally compatible with the SSI-FL protocol but were not evaluated in this study. Integrating these defenses without compromising the linear cost structure of the current implementation is a non-trivial engineering challenge that warrants dedicated investigation.
+
+Third, the cost model was calibrated on the Ethereum Sepolia testnet rather than the Ethereum mainnet or an alternative blockchain platform. Testnet gas prices are stable and predictable, but may not accurately reflect mainnet volatility. Healthcare consortia planning production deployments should consider permissioned blockchain platforms such as Hyperledger Fabric, which offer higher throughput, lower and more predictable transaction costs, and tighter integration with enterprise governance structures, though at the cost of reduced decentralization. The SSI-FL protocol, as specified in Section~\ref{sec:protocol}, is platform-agnostic and can be ported to any blockchain that supports smart contract execution and DID resolution, making this transition technically feasible.
+
+\subsection{Generalizability Beyond Healthcare}
+
+Although this paper situates its analysis in the healthcare domain, the trust model taxonomy and the SSI-FL protocol are fundamentally domain-agnostic. Any Internet-based service characterized by sensitive data, strict regulatory oversight, and the need for collaborative AI can benefit from the same framework. Financial services institutions could apply T3 to collaborative fraud detection without sharing proprietary transaction data. Critical infrastructure operators could train cybersecurity anomaly detection models without revealing sensitive system configurations. Educational technology platforms could develop personalized learning models while respecting student data privacy regulations. In each case, the core argument holds: if the identities of federated participants on the Internet cannot be verified, neither can the regulatory compliance nor the security of the resulting system.
+
+
+%%==========================================================
+\section{Conclusion}
+\label{sec:conclusion}
+%%==========================================================
+
+This paper has argued that the choice of trust model is the most consequential architectural decision in the design of a Federated Learning system for Internet-based services operating on sensitive data. Through a formal comparative analysis of four trust models, we have demonstrated that only the decentralized, SSI-based model (T3) provides deterministic Sybil resistance, LGPD-compliant participant authentication, and economic viability simultaneously. Empirical validation using the MIMIC-IV clinical dataset confirms that the T3 model preserves clinical-grade predictive performance (AUC-ROC = 0.954, Recall = 0.890) under adversarial conditions where the unprotected baseline degrades to clinically unacceptable levels (AUC-ROC = 0.813, FNR = 30\%). The analytical cost model introduced in this paper enables prospective adopters to project operational expenses before deployment, removing a significant barrier to adoption. The LGPD compliance mapping shows that T3 is the only model capable of satisfying all five regulatory dimensions examined, with direct practical implications for Brazilian healthcare institutions navigating the ANPD's evolving enforcement landscape.
+
+The results position decentralized identity verification not as an optional security enhancement but as a necessary foundation for privacy-compliant inter-institutional collaboration over the Internet. Future work should extend this analysis to insider threat defenses, permissioned blockchain platforms, and multi-modal clinical data settings, building toward a comprehensive framework for trustworthy collaborative AI in healthcare.
+
+
+%%==========================================================
+\section*{List of Abbreviations}
+%%==========================================================
+
+\begin{tabular}{ll}
+\textbf{ANPD} & Autoridade Nacional de Proteção de Dados (Brazilian Data Protection Authority) \\
+\textbf{AUC-ROC} & Area Under the Receiver Operating Characteristic Curve \\
+\textbf{BFL} & Blockchain-based Federated Learning \\
+\textbf{CA} & Certificate Authority \\
+\textbf{CID} & Content Identifier \\
+\textbf{CVSS} & Common Vulnerability Scoring System \\
+\textbf{DID} & Decentralized Identifier \\
+\textbf{EHR} & Electronic Health Record \\
+\textbf{FL} & Federated Learning \\
+\textbf{FNR} & False Negative Rate \\
+\textbf{GDPR} & General Data Protection Regulation (EU) \\
+\textbf{HIPAA} & Health Insurance Portability and Accountability Act (US) \\
+\textbf{IFRN} & Instituto Federal de Educação, Ciência e Tecnologia do Rio Grande do Norte \\
+\textbf{IPFS} & InterPlanetary File System \\
+\textbf{JISA} & Journal of Internet Services and Applications \\
+\textbf{LGPD} & Lei Geral de Proteção de Dados (Brazilian General Data Protection Law) \\
+\textbf{MIMIC-IV} & Medical Information Mart for Intensive Care, version IV \\
+\textbf{PKI} & Public Key Infrastructure \\
+\textbf{SSI} & Self-Sovereign Identity \\
+\textbf{VC} & Verifiable Credential \\
+\textbf{VP} & Verifiable Presentation \\
+\textbf{W3C} & World Wide Web Consortium \\
+\textbf{ZKP} & Zero-Knowledge Proof \\
+\end{tabular}
+
+
+%%==========================================================
+\section*{Declarations}
+%%==========================================================
+
+\begin{contributions}
+R.T. conceived the comparative trust model framework, implemented the SSI-FL protocol, designed and conducted the experiments, and wrote the manuscript. R.A. supervised the project and contributed to the experimental design. L.A. contributed to the methodology design and provided critical revision of the manuscript. All authors read and approved the final manuscript.
+\end{contributions}
+
+\begin{interests}
+The authors declare that they have no competing interests.
+\end{interests}
+
+\begin{acknowledgements}
+The authors acknowledge the computational resources provided by the Software Engineering and Automation Research Laboratory at IFRN. We thank the MIT Laboratory for Computational Physiology for open access to the MIMIC-IV database.
+\end{acknowledgements}
+
+\begin{funding}
+The authors declare that no funds, grants, or other support were received during the preparation of this manuscript.
+\end{funding}
+
+\begin{materials}
+The source code developed for this study is publicly available at \url{https://github.com/rodrigoronner/TBFL-EHR-Framework}. The MIMIC-IV dataset is available from PhysioNet under a credentialed user agreement.
+\end{materials}
+
+\bibliographystyle{apalike-sol}
+\bibliography{refs_jbcs}
+
+\end{document}

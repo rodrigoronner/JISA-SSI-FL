@@ -1,0 +1,15 @@
+Comments to the Editor
+=====================
+
+This manuscript addresses the open problem of participant authentication in Blockchain-based Federated Learning (BFL), identified as a primary future direction by Qammar et al. (2023) in their systematic review of 41 BFL studies. The paper proposes a decentralized identity protocol based on W3C DIDs and VCs that provides deterministic Sybil resistance without reliance on centralized trust anchors.
+
+We selected JISA because the paper's core contributions---a decentralized identity protocol for Internet-distributed services, blockchain smart contracts as middleware, and security guarantees against Sybil attacks---fall squarely within JISA's focus on networking, security, and Internet applications. The healthcare domain serves as the application context, but the protocol is specified in a fully domain-agnostic form.
+
+We confirm that:
+- The manuscript has not been published or submitted elsewhere.
+- The submission follows the JISA LaTeX template and will be provided in PDF format.
+- DOIs are included for all references where available.
+- All authors have approved the manuscript.
+- No competing interests exist.
+
+Suggested reviewers (optional, at the Editors' discretion): experts in Federated Learning security, blockchain-based access control, or W3C decentralized identity standards.
